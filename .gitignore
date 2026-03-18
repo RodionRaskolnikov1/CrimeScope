@@ -1,0 +1,64 @@
+# ── Python ────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+
+# ── Virtual Environment ───────────────────────────
+.venv/
+venv/
+env/
+
+# ── uv ────────────────────────────────────────────
+# Keep uv.lock (important for reproducibility!)
+# Keep pyproject.toml
+.uv-cache/
+
+# ── Data Files (too large for GitHub) ────────────
+data/raw/
+data/processed/
+data/external/
+*.csv
+*.parquet
+*.json
+
+# ── Artifacts & Models (too large) ───────────────
+artifacts/models/
+artifacts/chroma_db/
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+
+# ── Logs ──────────────────────────────────────────
+logs/
+*.log
+
+# ── Environment & Secrets ─────────────────────────
+.env
+.env.*
+!.env.example        
+
+# ── Jupyter / Marimo ──────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── VS Code ───────────────────────────────────────
+.vscode/
+*.code-workspace
+
+# ── OS Files ──────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Testing & Coverage ────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ── Ruff cache ────────────────────────────────────
+.ruff_cache/
