@@ -21,16 +21,20 @@ data/processed/
 data/external/
 *.csv
 *.parquet
-*.json
 
 # ── Artifacts & Models (too large) ───────────────
 artifacts/models/
 artifacts/chroma_db/
+artifacts/forecasts/
+artifacts/vision/
+artifacts/shap_global_importance.png
 *.pkl
 *.joblib
 *.pt
 *.pth
 *.onnx
+
+artifacts/**/*.json
 
 # ── Logs ──────────────────────────────────────────
 logs/
