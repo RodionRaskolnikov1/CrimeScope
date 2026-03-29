@@ -68,6 +68,9 @@ coverage.xml
 # ── Streamlit (if used) ───────────────────────────
 .streamlit/
 
+# Marimo sessions
+__marimo__/
+
 # ── Keep folder structure on GitHub ──────────────
 !data/raw/.gitkeep
 !data/processed/.gitkeep
