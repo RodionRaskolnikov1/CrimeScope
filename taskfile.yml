@@ -1,0 +1,62 @@
+version: '3'
+
+tasks:
+
+  # ── Pipeline ────────────────────────────────────────────────────
+  pipeline:
+    desc: "Run the full ML pipeline (downloads data, trains models, generates artifacts)"
+    cmds:
+      - uv run python main.py
+
+  # ── API Server ───────────────────────────────────────────────────
+  serve:
+    desc: "Start the FastAPI server at http://localhost:8000"
+    cmds:
+      - uv run uvicorn crimescope.api.main:app --reload --port 8000
+
+  serve-prod:
+    desc: "Start the FastAPI server in production mode"
+    cmds:
+      - uv run uvicorn crimescope.api.main:app --host 0.0.0.0 --port 8000 --workers 2
+
+  # ── Code Quality ─────────────────────────────────────────────────
+  lint:
+    desc: "Run Ruff linter"
+    cmds:
+      - uv run ruff check .
+
+  format:
+    desc: "Run Ruff formatter"
+    cmds:
+      - uv run ruff format .
+
+  fix:
+    desc: "Run Ruff linter with auto-fix"
+    cmds:
+      - uv run ruff check . --fix
+
+  # ── Testing ──────────────────────────────────────────────────────
+  test:
+    desc: "Run all tests"
+    cmds:
+      - uv run pytest tests/ -v
+
+  # ── Setup ────────────────────────────────────────────────────────
+  setup:
+    desc: "Create all required .gitkeep files for folder structure"
+    cmds:
+      - mkdir -p data/raw data/processed data/external
+      - mkdir -p artifacts/models artifacts/forecasts artifacts/vision/images
+      - mkdir -p artifacts/chroma_db artifacts/reports logs
+      - touch data/raw/.gitkeep data/processed/.gitkeep data/external/.gitkeep
+      - touch artifacts/models/.gitkeep artifacts/forecasts/.gitkeep
+      - touch artifacts/vision/.gitkeep artifacts/vision/images/.gitkeep
+      - touch artifacts/chroma_db/.gitkeep artifacts/reports/.gitkeep logs/.gitkeep
+      - echo "Setup complete!"
+
+  # ── Docs ─────────────────────────────────────────────────────────
+  docs:
+    desc: "Open FastAPI auto-generated API docs"
+    cmds:
+      - echo "API docs at http://localhost:8000/docs"
+      - echo "Make sure the server is running with: task serve"

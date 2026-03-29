@@ -1,3 +1,6 @@
-from pathlib import Path
+from google import genai
 
-print(Path(__file__).parent.parent)
+client = genai.Client(api_key="AIzaSyDOXQxTdJDUFurdtHk3deRNmfVEi1W5sKw")
+
+for m in client.models.list():
+    print(m.name)

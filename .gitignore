@@ -11,8 +11,6 @@ venv/
 env/
 
 # ── uv ────────────────────────────────────────────
-# Keep uv.lock (important for reproducibility!)
-# Keep pyproject.toml
 .uv-cache/
 
 # ── Data Files (too large for GitHub) ────────────
@@ -22,19 +20,18 @@ data/external/
 *.csv
 *.parquet
 
-# ── Artifacts & Models (too large) ───────────────
+# ── Artifacts & Models (regeneratable) ───────────
 artifacts/models/
 artifacts/chroma_db/
 artifacts/forecasts/
 artifacts/vision/
+artifacts/reports/
 artifacts/shap_global_importance.png
 *.pkl
 *.joblib
 *.pt
 *.pth
 *.onnx
-
-artifacts/**/*.json
 
 # ── Logs ──────────────────────────────────────────
 logs/
@@ -43,11 +40,12 @@ logs/
 # ── Environment & Secrets ─────────────────────────
 .env
 .env.*
-!.env.example        
+!.env.example
 
 # ── Jupyter / Marimo ──────────────────────────────
 .ipynb_checkpoints/
 *.ipynb
+__marimo__/
 
 # ── VS Code ───────────────────────────────────────
 .vscode/
@@ -66,3 +64,18 @@ coverage.xml
 
 # ── Ruff cache ────────────────────────────────────
 .ruff_cache/
+
+# ── Streamlit (if used) ───────────────────────────
+.streamlit/
+
+# ── Keep folder structure on GitHub ──────────────
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
+!artifacts/models/.gitkeep
+!artifacts/forecasts/.gitkeep
+!artifacts/vision/.gitkeep
+!artifacts/vision/images/.gitkeep
+!artifacts/chroma_db/.gitkeep
+!artifacts/reports/.gitkeep
+!logs/.gitkeep

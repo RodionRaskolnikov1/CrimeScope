@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     models_dir: Path = ROOT_DIR / "artifacts" / "models"
     chroma_dir: Path = ROOT_DIR / "artifacts" / "chroma_db"
     
-    openai_api_key: str = ""
+    google_gemini_api_key: str = ""
     google_maps_api_key: str = ""
     open_meteo_base_url: str = "https://archive-api.open-meteo.com/v1/archive"
     

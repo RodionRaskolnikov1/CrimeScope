@@ -7,6 +7,9 @@ from crimescope.models.classifier import train
 from crimescope.models.explainability import explain_global
 from crimescope.models.forecaster import run_forecasting
 from crimescope.vision.risk_scorer import run_vision_pipeline
+from crimescope.nlp.embeddings import run_embeddings
+from crimescope.nlp.report_generator import run_report_generation
+from crimescope.nlp.qa_chain import ask
 from crimescope.utils.logger import logger
 
 
@@ -31,12 +34,26 @@ def main():
         .group_by("zone_id")
         .agg(pl.len().alias("total"))
         .sort("total", descending=True)
-        .head(10)
-        ["zone_id"]
+        .head(10)["zone_id"]
         .to_list()
     )
     vision_df = run_vision_pipeline(top_zones)
-    logger.info(f"Vision scores:\n{vision_df}")
+
+    # ── Week 5 — LLM + RAG ────────────────────────
+    run_embeddings(validated_df, forecast_results, vision_df)
+    reports = run_report_generation(validated_df, forecast_results, vision_df)
+
+    # Test the RAG chat with 3 sample queries
+    logger.info("Testing RAG chat...")
+    test_queries = [
+        "Which zone has the highest crime rate?",
+        "What time of day is most dangerous in zone 1434?",
+        "Which areas are safest on weekend mornings?",
+    ]
+    for query in test_queries:
+        result = ask(query)
+        print(f"\n❓ {result['query']}")
+        print(f"🤖 {result['answer']}\n")
 
     logger.success("✅ Pipeline complete!")
     logger.info(f"Accuracy: {metrics['accuracy']:.3f}")
