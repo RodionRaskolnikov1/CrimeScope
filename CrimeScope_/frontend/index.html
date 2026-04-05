@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrimeScope — Chicago</title>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+/* ── Fonts ────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ── Reset & Variables ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --white:       #ffffff;
+  --off-white:   #f7f6f3;
+  --stone:       #ece9e3;
+  --border:      #e2ddd6;
+  --border-dark: #c8c0b4;
+  --text-faint:  #b0a898;
+  --text-mid:    #6b6158;
+  --text-body:   #3d3530;
+  --text-head:   #1a1512;
+
+  --red:         #c0392b;
+  --red-light:   #fdf2f1;
+  --amber:       #c87800;
+  --amber-light: #fdf7ed;
+  --green:       #2d7a4f;
+  --green-light: #f0f7f3;
+  --blue:        #1a5fa8;
+  --blue-light:  #f0f5fb;
+
+  --sidebar-w:   220px;
+  --header-h:    60px;
+
+  --sans: 'DM Sans', sans-serif;
+  --serif: 'DM Serif Display', serif;
+  --mono: 'DM Mono', monospace;
+}
+
+html, body { height: 100%; font-family: var(--sans); background: var(--off-white); color: var(--text-body); }
+
+/* ── Layout ──────────────────────────────────────────────────── */
+.app { display: flex; height: 100vh; overflow: hidden; }
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.sidebar-brand {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-brand-name {
+  font-family: var(--serif);
+  font-size: 20px;
+  color: var(--text-head);
+  letter-spacing: -0.3px;
+  line-height: 1;
+}
+
+.sidebar-brand-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
+.sidebar-nav {
+  padding: 12px 10px;
+  flex: 1;
+}
+
+.nav-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 10px 10px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-mid);
+  transition: background 0.15s, color 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 2px;
+}
+
+.nav-item:hover { background: var(--off-white); color: var(--text-head); }
+.nav-item.active { background: var(--text-head); color: var(--white); }
+
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.nav-item.active .nav-icon { opacity: 1; }
+
+.sidebar-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-footer-text {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  margin-right: 5px;
+  vertical-align: middle;
+  animation: pulse 2.5s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Main area ───────────────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────── */
+.topbar {
+  height: var(--header-h);
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.topbar-title {
+  font-family: var(--serif);
+  font-size: 18px;
+  color: var(--text-head);
+  flex: 1;
+}
+
+.topbar-meta {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 0.5px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.badge-red    { background: var(--red-light);   color: var(--red);   border: 1px solid #f2c3bf; }
+.badge-amber  { background: var(--amber-light); color: var(--amber); border: 1px solid #f0dcb0; }
+.badge-green  { background: var(--green-light); color: var(--green); border: 1px solid #b8dcc8; }
+.badge-blue   { background: var(--blue-light);  color: var(--blue);  border: 1px solid #b8d0e8; }
+.badge-neutral{ background: var(--stone);       color: var(--text-mid); border: 1px solid var(--border); }
+
+/* ── Page container ──────────────────────────────────────────── */
+.page {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px;
+  display: none;
+}
+.page.active { display: block; }
+
+/* ── Stat cards ──────────────────────────────────────────────── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+
+.stat-card.red::before    { background: var(--red); }
+.stat-card.amber::before  { background: var(--amber); }
+.stat-card.green::before  { background: var(--green); }
+.stat-card.blue::before   { background: var(--blue); }
+.stat-card.neutral::before { background: var(--border-dark); }
+
+.stat-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-family: var(--serif);
+  font-size: 34px;
+  color: var(--text-head);
+  line-height: 1;
+}
+
+.stat-card.red .stat-value    { color: var(--red); }
+.stat-card.amber .stat-value  { color: var(--amber); }
+.stat-card.green .stat-value  { color: var(--green); }
+
+/* ── Section headers ─────────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.section-title {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--text-head);
+}
+
+.section-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 0.5px;
+}
+
+/* ── Card wrapper ────────────────────────────────────────────── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.card-pad { padding: 20px; }
+
+/* ── Map ─────────────────────────────────────────────────────── */
+#map {
+  height: 480px;
+  border-radius: 0;
+}
+
+/* ── Legend ──────────────────────────────────────────────────── */
+.legend-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.legend-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+  background: var(--white);
+}
+
+.legend-title {
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.legend-desc {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+
+/* ── Forecast ────────────────────────────────────────────────── */
+.forecast-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.forecast-img {
+  width: 100%;
+  border-radius: 0;
+  display: block;
+}
+
+.zone-select-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.zone-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-body);
+  background: var(--white);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.zone-select:focus { border-color: var(--text-mid); }
+
+/* ── Risk score cards ────────────────────────────────────────── */
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.risk-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  position: relative;
+}
+
+.risk-card-zone {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
+.risk-card-score {
+  font-family: var(--serif);
+  font-size: 32px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.risk-bar {
+  height: 3px;
+  background: var(--stone);
+  border-radius: 2px;
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+.risk-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+.risk-metric-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.risk-metric {
+  text-align: center;
+}
+
+.risk-metric-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.risk-metric-value {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-body);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.shap-section { margin-top: 24px; }
+
+/* ── Chat ────────────────────────────────────────────────────── */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 20px;
+  height: calc(100vh - var(--header-h) - 56px);
+}
+
+.chat-main {
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chat-msg {
+  max-width: 82%;
+  line-height: 1.6;
+}
+
+.chat-msg.user { align-self: flex-end; }
+.chat-msg.ai   { align-self: flex-start; }
+
+.chat-msg-who {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.chat-msg.user .chat-msg-who { color: var(--blue);  text-align: right; }
+.chat-msg.ai   .chat-msg-who { color: var(--text-faint); }
+
+.chat-bubble {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.chat-msg.user .chat-bubble {
+  background: var(--text-head);
+  color: var(--white);
+  border-radius: 12px 4px 12px 12px;
+}
+
+.chat-msg.ai .chat-bubble {
+  background: var(--off-white);
+  color: var(--text-body);
+  border: 1px solid var(--border);
+  border-radius: 4px 12px 12px 12px;
+}
+
+.chat-input-area {
+  border-top: 1px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  gap: 10px;
+  background: var(--white);
+}
+
+.chat-input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 14px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text-body);
+  outline: none;
+  transition: border-color 0.15s;
+  resize: none;
+  min-height: 40px;
+  max-height: 120px;
+}
+
+.chat-input:focus { border-color: var(--text-mid); }
+.chat-input::placeholder { color: var(--text-faint); }
+
+.chat-send {
+  padding: 9px 18px;
+  background: var(--text-head);
+  color: var(--white);
+  border: none;
+  border-radius: 6px;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+
+.chat-send:hover { opacity: 0.85; }
+.chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Sidebar suggestions ─────────────────────────────────────── */
+.chat-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.suggestions-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.suggestions-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 10px;
+}
+
+.suggestion-btn {
+  width: 100%;
+  text-align: left;
+  background: var(--off-white);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 8px 11px;
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--text-mid);
+  cursor: pointer;
+  margin-bottom: 6px;
+  transition: all 0.15s;
+  line-height: 1.4;
+}
+
+.suggestion-btn:hover {
+  background: var(--stone);
+  color: var(--text-head);
+  border-color: var(--border-dark);
+}
+
+/* ── Loading spinner ─────────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--text-mid);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Info banner ─────────────────────────────────────────────── */
+.info-banner {
+  background: var(--blue-light);
+  border: 1px solid #b8d0e8;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--blue);
+  margin-bottom: 18px;
+  font-family: var(--mono);
+  letter-spacing: 0.2px;
+}
+
+/* ── Divider ─────────────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 24px 0;
+}
+
+/* ── Leaflet popup override ──────────────────────────────────── */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
+  font-family: var(--sans) !important;
+}
+
+.leaflet-popup-content { margin: 14px 16px !important; }
+
+.popup-zone {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 3px;
+}
+
+.popup-score {
+  font-family: var(--serif);
+  font-size: 28px;
+  color: var(--text-head);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.popup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-mid);
+}
+
+.popup-key {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+
+/* ── Typing indicator ────────────────────────────────────────── */
+.typing-dot {
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  margin: 0 1px;
+  animation: typing-bounce 1.2s ease infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* ── Page entry animation ─────────────────────────────────────── */
+.page.active {
+  animation: pagein 0.2s ease;
+}
+
+@keyframes pagein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-name">CrimeScope</div>
+      <div class="sidebar-brand-sub">Chicago Intelligence</div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-label">Analysis</div>
+
+      <button class="nav-item active" data-page="heatmap">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+          <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/>
+          <line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/>
+          <line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/>
+          <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/>
+        </svg>
+        Heatmap
+      </button>
+
+      <button class="nav-item" data-page="forecast">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+        Forecast
+      </button>
+
+      <button class="nav-item" data-page="risk">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Risk Scores
+      </button>
+
+      <button class="nav-item" data-page="chat">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        Ask AI
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">
+        <span class="status-dot"></span>System online<br>
+        546,160 records indexed<br>
+        10 zones monitored
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ─────────────────────────────────────────────────── -->
+  <div class="main">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Crime Heatmap</div>
+      <div class="topbar-meta" id="page-meta">Chicago Metropolitan Area · 2021–2023</div>
+    </div>
+
+    <!-- ── Heatmap Page ──────────────────────────────────────── -->
+    <div class="page active" id="page-heatmap">
+      <div class="stats-row" id="heatmap-stats">
+        <div class="stat-card neutral">
+          <div class="stat-label">Zones Monitored</div>
+          <div class="stat-value" id="stat-total">—</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-label">High Risk</div>
+          <div class="stat-value" id="stat-high">—</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">Moderate Risk</div>
+          <div class="stat-value" id="stat-mod">—</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Lower Risk</div>
+          <div class="stat-value" id="stat-low">—</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div id="map"></div>
+      </div>
+
+      <div class="legend-row">
+        <div class="legend-card" style="border-left: 3px solid var(--red)">
+          <div class="legend-title" style="color:var(--red)">High Risk</div>
+          <div class="legend-desc">Risk score › 65</div>
+        </div>
+        <div class="legend-card" style="border-left: 3px solid var(--amber)">
+          <div class="legend-title" style="color:var(--amber)">Moderate Risk</div>
+          <div class="legend-desc">Risk score 50–65</div>
+        </div>
+        <div class="legend-card" style="border-left: 3px solid var(--green)">
+          <div class="legend-title" style="color:var(--green)">Lower Risk</div>
+          <div class="legend-desc">Risk score ‹ 50</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Forecast Page ─────────────────────────────────────── -->
+    <div class="page" id="page-forecast">
+      <div class="info-banner">
+        Prophet time-series model · Trained on 546,160 crime records · 30-day outlook · 95% confidence intervals shown
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">Citywide Overview</div>
+        <div class="section-sub">All top zones combined</div>
+      </div>
+
+      <div class="card" style="margin-bottom:24px">
+        <img id="citywide-img" class="forecast-img" src="" alt="Citywide forecast" style="display:none"/>
+        <div class="empty-state" id="citywide-loading">
+          <span class="spinner"></span> Loading citywide forecast…
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="section-header">
+        <div class="section-title">Zone Forecast</div>
+        <div class="section-sub">Select a zone for detailed 30-day outlook</div>
+      </div>
+
+      <div class="zone-select-row">
+        <select class="zone-select" id="zone-selector">
+          <option value="">Loading zones…</option>
+        </select>
+        <span class="badge badge-blue" id="zone-badge" style="display:none">Prophet Model</span>
+      </div>
+
+      <div class="card">
+        <img id="zone-img" class="forecast-img" src="" alt="Zone forecast" style="display:none"/>
+        <div class="empty-state" id="zone-placeholder">Select a zone above to view its forecast</div>
+      </div>
+
+      <div class="card-pad" style="margin-top:12px; background:var(--off-white); border:1px solid var(--border); border-radius:6px;">
+        <p style="font-family:var(--mono); font-size:10px; color:var(--text-faint);">
+          ⚠ Forecasts represent probabilistic estimates based on historical patterns.
+          Confidence intervals shown at 80% and 95% bands.
+          Operational decisions should incorporate ground-level intelligence.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Risk Scores Page ──────────────────────────────────── -->
+    <div class="page" id="page-risk">
+      <div class="section-header">
+        <div class="section-title">Zone Risk Analysis</div>
+        <div class="section-sub">Visual risk scores from EfficientNet-B0 + OpenCV</div>
+      </div>
+
+      <div class="risk-grid" id="risk-grid">
+        <div class="empty-state">
+          <span class="spinner"></span> Loading risk scores…
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="section-header">
+        <div class="section-title">Model Explainability</div>
+        <div class="section-sub">SHAP feature importance</div>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <img id="shap-img" class="forecast-img" src="/api/forecasts/shap" alt="SHAP importance" style="display:none"/>
+        <div class="empty-state" id="shap-placeholder">SHAP chart unavailable — run explain_global() first</div>
+      </div>
+
+      <div class="card-pad" style="background:var(--off-white); border:1px solid var(--border); border-radius:6px;">
+        <p style="font-family:var(--mono); font-size:10px; color:var(--text-faint);">
+          SHAP (SHapley Additive exPlanations) values quantify each feature's contribution to individual predictions.
+          Higher absolute values indicate stronger influence on model output.
+        </p>
+      </div>
+    </div>
+
+    <!-- ── Chat Page ─────────────────────────────────────────── -->
+    <div class="page" id="page-chat">
+      <div class="chat-layout">
+        <div class="chat-main">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-msg ai">
+              <div class="chat-msg-who">CrimeScope AI</div>
+              <div class="chat-bubble">
+                I've analyzed 546,160 crime records across Chicago's top zones.
+
+Ask me anything about crime patterns, risk areas, peak times, or safety recommendations.
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-area">
+            <textarea
+              class="chat-input"
+              id="chat-input"
+              placeholder="Ask about Chicago crime data…"
+              rows="1"
+            ></textarea>
+            <button class="chat-send" id="chat-send">Send</button>
+          </div>
+        </div>
+
+        <div class="chat-sidebar">
+          <div class="suggestions-card">
+            <div class="suggestions-title">Suggested queries</div>
+            <button class="suggestion-btn">Which zone has the highest crime rate?</button>
+            <button class="suggestion-btn">What time is most dangerous in zone 1434?</button>
+            <button class="suggestion-btn">Which areas are safest on weekends?</button>
+            <button class="suggestion-btn">What crimes happen most in summer?</button>
+            <button class="suggestion-btn">Show violent crime trends over time</button>
+            <button class="suggestion-btn">What's the most common crime type?</button>
+          </div>
+
+          <div class="suggestions-card">
+            <div class="suggestions-title">System Info</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--text-faint);line-height:1.8">
+              Retrieval: LangChain RAG<br>
+              LLM: Gemini Flash<br>
+              Index: ChromaDB<br>
+              Records: 546,160
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ── Router ──────────────────────────────────────────────────── */
+const PAGES = {
+  heatmap:  { title: 'Crime Heatmap',  meta: 'Chicago Metropolitan Area · 2021–2023', el: 'page-heatmap' },
+  forecast: { title: 'Crime Forecast', meta: 'Prophet Time-Series · 30-Day Outlook',   el: 'page-forecast' },
+  risk:     { title: 'Risk Scores',    meta: 'EfficientNet-B0 + OpenCV Visual Analysis', el: 'page-risk' },
+  chat:     { title: 'Ask the AI',     meta: 'RAG · LangChain · Gemini Flash',          el: 'page-chat' },
+};
+
+let currentPage = 'heatmap';
+let mapInitialized = false;
+
+function navigate(page) {
+  if (page === currentPage) return;
+  currentPage = page;
+
+  // Update nav
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.page === page);
+  });
+
+  // Update pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(PAGES[page].el).classList.add('active');
+
+  // Update topbar
+  document.getElementById('page-title').textContent = PAGES[page].title;
+  document.getElementById('page-meta').textContent  = PAGES[page].meta;
+
+  // Lazy init
+  if (page === 'heatmap' && !mapInitialized) initMap();
+  if (page === 'forecast') initForecast();
+  if (page === 'risk') initRisk();
+}
+
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => navigate(btn.dataset.page));
+});
+
+
+/* ── Heatmap ─────────────────────────────────────────────────── */
+let map = null;
+
+function initMap() {
+  mapInitialized = true;
+
+  map = L.map('map', {
+    center: [41.85, -87.65],
+    zoom: 12,
+    zoomControl: true,
+  });
+
+  // Clean minimal tile layer
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(map);
+
+  loadHeatmapData();
+}
+
+async function loadHeatmapData() {
+  try {
+    const res = await fetch('/api/heatmap/zones');
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    // Stats
+    const s = data.summary;
+    document.getElementById('stat-total').textContent = s.total_zones;
+    document.getElementById('stat-high').textContent  = s.high_risk;
+    document.getElementById('stat-mod').textContent   = s.moderate_risk;
+    document.getElementById('stat-low').textContent   = s.low_risk;
+
+    // Markers
+    data.zones.forEach(z => {
+      const color =
+        z.risk_level === 'high'     ? '#c0392b' :
+        z.risk_level === 'moderate' ? '#c87800' : '#2d7a4f';
+
+      const marker = L.circleMarker([z.lat, z.lon], {
+        radius: 13,
+        color: color,
+        weight: 2,
+        fillColor: color,
+        fillOpacity: 0.45,
+      }).addTo(map);
+
+      const levelLabel =
+        z.risk_level === 'high' ? 'High Risk' :
+        z.risk_level === 'moderate' ? 'Moderate' : 'Lower Risk';
+
+      marker.bindPopup(`
+        <div class="popup-zone">Zone ${z.zone_id}</div>
+        <div class="popup-score" style="color:${color}">${z.risk_score.toFixed(1)}<span style="font-family:var(--mono);font-size:12px;color:var(--text-faint)">/100</span></div>
+        <span class="badge" style="background:${color}15;color:${color};border-color:${color}40;margin-bottom:10px;display:inline-flex">${levelLabel}</span>
+        <div class="popup-grid">
+          <div><div class="popup-key">Darkness</div>${z.darkness_score.toFixed(3)}</div>
+          <div><div class="popup-key">Edges</div>${z.edge_density.toFixed(3)}</div>
+          <div><div class="popup-key">Green</div>${z.green_ratio.toFixed(3)}</div>
+          <div><div class="popup-key">Gray</div>${z.gray_ratio.toFixed(3)}</div>
+        </div>
+      `, { maxWidth: 200 });
+
+      marker.bindTooltip(`Zone ${z.zone_id} — ${z.risk_score.toFixed(1)}/100`, {
+        sticky: true,
+        className: '',
+      });
+    });
+
+  } catch (e) {
+    console.error('Heatmap load error:', e);
+    document.getElementById('stat-total').textContent = 'ERR';
+  }
+}
+
+
+/* ── Forecast ─────────────────────────────────────────────────── */
+let forecastLoaded = false;
+
+async function initForecast() {
+  if (forecastLoaded) return;
+  forecastLoaded = true;
+
+  // Citywide image
+  const cwImg = document.getElementById('citywide-img');
+  const cwLoad = document.getElementById('citywide-loading');
+  cwImg.src = '/api/forecasts/citywide/image?' + Date.now();
+  cwImg.onload = () => { cwImg.style.display = 'block'; cwLoad.style.display = 'none'; };
+  cwImg.onerror = () => { cwLoad.textContent = 'Citywide forecast image not found. Run the pipeline first.'; };
+
+  // Zone list
+  try {
+    const res = await fetch('/api/forecasts/zones');
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const sel = document.getElementById('zone-selector');
+    sel.innerHTML = '<option value="">— Select zone —</option>';
+    data.zones.forEach(z => {
+      const opt = document.createElement('option');
+      opt.value = z;
+      opt.textContent = `Zone ${z}`;
+      sel.appendChild(opt);
+    });
+
+    sel.addEventListener('change', () => {
+      const zone = sel.value;
+      const zImg = document.getElementById('zone-img');
+      const zPh  = document.getElementById('zone-placeholder');
+      const zbadge = document.getElementById('zone-badge');
+
+      if (!zone) { zImg.style.display = 'none'; zPh.style.display = ''; zbadge.style.display = 'none'; return; }
+
+      zImg.style.display = 'none';
+      zPh.innerHTML = '<span class="spinner"></span> Loading…';
+      zPh.style.display = '';
+      zbadge.style.display = '';
+
+      zImg.src = `/api/forecasts/zone/${zone}/image?` + Date.now();
+      zImg.onload  = () => { zImg.style.display = 'block'; zPh.style.display = 'none'; };
+      zImg.onerror = () => { zPh.textContent = `No forecast image found for zone ${zone}.`; };
+    });
+
+  } catch {
+    document.getElementById('zone-selector').innerHTML = '<option>Error loading zones</option>';
+  }
+}
+
+
+/* ── Risk Scores ─────────────────────────────────────────────── */
+let riskLoaded = false;
+
+async function initRisk() {
+  if (riskLoaded) return;
+  riskLoaded = true;
+
+  try {
+    const res = await fetch('/api/heatmap/zones');
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+
+    const grid = document.getElementById('risk-grid');
+    grid.innerHTML = '';
+
+    // Sort by risk score desc
+    const zones = [...data.zones].sort((a, b) => b.risk_score - a.risk_score);
+
+    zones.forEach(z => {
+      const color =
+        z.risk_level === 'high'     ? '#c0392b' :
+        z.risk_level === 'moderate' ? '#c87800' : '#2d7a4f';
+
+      const label =
+        z.risk_level === 'high' ? 'HIGH' :
+        z.risk_level === 'moderate' ? 'MOD' : 'LOW';
+
+      const card = document.createElement('div');
+      card.className = 'risk-card';
+      card.style.borderTop = `2px solid ${color}`;
+      card.innerHTML = `
+        <div class="risk-card-zone">Zone ${z.zone_id}</div>
+        <div class="risk-card-score" style="color:${color}">${z.risk_score.toFixed(1)}</div>
+        <span class="badge" style="background:${color}12;color:${color};border-color:${color}30;font-size:9px">${label} RISK</span>
+        <div class="risk-bar" style="margin-top:10px">
+          <div class="risk-bar-fill" style="width:${z.risk_score}%;background:${color}"></div>
+        </div>
+        <div class="risk-metric-row">
+          <div class="risk-metric">
+            <div class="risk-metric-label">Dark</div>
+            <div class="risk-metric-value">${z.darkness_score.toFixed(2)}</div>
+          </div>
+          <div class="risk-metric">
+            <div class="risk-metric-label">Edge</div>
+            <div class="risk-metric-value">${z.edge_density.toFixed(2)}</div>
+          </div>
+          <div class="risk-metric">
+            <div class="risk-metric-label">Green</div>
+            <div class="risk-metric-value">${z.green_ratio.toFixed(2)}</div>
+          </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    // Try loading SHAP image
+    const shapImg = document.getElementById('shap-img');
+    shapImg.src = '/static/shap_global_importance.png?' + Date.now();
+    shapImg.onload = () => {
+      shapImg.style.display = 'block';
+      document.getElementById('shap-placeholder').style.display = 'none';
+    };
+
+  } catch (e) {
+    document.getElementById('risk-grid').innerHTML =
+      '<div class="empty-state">Failed to load risk scores. Run the vision pipeline first.</div>';
+  }
+}
+
+
+/* ── Chat ────────────────────────────────────────────────────── */
+function appendMessage(role, content) {
+  const box = document.getElementById('chat-messages');
+
+  const wrapper = document.createElement('div');
+  wrapper.className = `chat-msg ${role}`;
+
+  const who = document.createElement('div');
+  who.className = 'chat-msg-who';
+  who.textContent = role === 'user' ? 'You' : 'CrimeScope AI';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble';
+  bubble.textContent = content;
+
+  wrapper.appendChild(who);
+  wrapper.appendChild(bubble);
+  box.appendChild(wrapper);
+  box.scrollTop = box.scrollHeight;
+  return bubble;
+}
+
+function showTyping() {
+  const box = document.getElementById('chat-messages');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'chat-msg ai';
+  wrapper.id = 'typing-indicator';
+
+  const who = document.createElement('div');
+  who.className = 'chat-msg-who';
+  who.textContent = 'CrimeScope AI';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'chat-bubble';
+  bubble.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+
+  wrapper.appendChild(who);
+  wrapper.appendChild(bubble);
+  box.appendChild(wrapper);
+  box.scrollTop = box.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+async function sendMessage(query) {
+  if (!query.trim()) return;
+
+  const input = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send');
+
+  input.value = '';
+  input.style.height = 'auto';
+  sendBtn.disabled = true;
+
+  appendMessage('user', query);
+  showTyping();
+
+  try {
+    const res = await fetch('/api/chat/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+
+    hideTyping();
+
+    if (!res.ok) {
+      const err = await res.json();
+      appendMessage('ai', `⚠ Error: ${err.detail}`);
+    } else {
+      const data = await res.json();
+      appendMessage('ai', data.answer);
+    }
+  } catch (e) {
+    hideTyping();
+    appendMessage('ai', '⚠ Connection failed. Is the FastAPI server running?');
+  }
+
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+// Send on button click
+document.getElementById('chat-send').addEventListener('click', () => {
+  sendMessage(document.getElementById('chat-input').value);
+});
+
+// Send on Enter (Shift+Enter for newline)
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage(e.target.value);
+  }
+});
+
+// Auto-resize textarea
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// Suggestion buttons
+document.querySelectorAll('.suggestion-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    navigate('chat');
+    sendMessage(btn.textContent.trim());
+  });
+});
+
+
+/* ── Init ────────────────────────────────────────────────────── */
+initMap();
+</script>
+</body>
+</html>

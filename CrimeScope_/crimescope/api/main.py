@@ -1,34 +1,16 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
 from crimescope.api.routes import chat, forecasts, predictions, heatmap
 
-app = FastAPI(
-    title="CrimeScope API",
-    version="1.0.0",
-    description="AI-powered urban safety intelligence system for Chicago crime analysis.",
-    docs_url="/docs",
-    redoc_url="/redoc",
-)
-
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+app = FastAPI(title="CrimeScope API", version="1.0.0")
 
 app.include_router(heatmap.router,     prefix="/api/heatmap",     tags=["heatmap"])
 app.include_router(forecasts.router,   prefix="/api/forecasts",   tags=["forecasts"])
 app.include_router(predictions.router, prefix="/api/predictions", tags=["predictions"])
 app.include_router(chat.router,        prefix="/api/chat",        tags=["chat"])
-
 
 FRONTEND_DIR = Path(__file__).parent.parent.parent / "frontend"
 STATIC_DIR   = FRONTEND_DIR / "static"
@@ -38,30 +20,22 @@ STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint for deployment monitoring."""
-    return {"status": "ok", "service": "CrimeScope API", "version": "1.0.0"}
-
-
 @app.get("/")
 async def serve_index():
-    """Serve the SPA index.html."""
     index = FRONTEND_DIR / "index.html"
     if not index.exists():
         return {"error": "index.html not found in frontend/ directory"}
     return FileResponse(str(index))
 
-
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
-    """Catch-all route for SPA client-side navigation."""
+    # Don't intercept API routes (shouldn't happen but safety net)
     if full_path.startswith("api/"):
         return {"error": "not found"}
     file = FRONTEND_DIR / full_path
     if file.exists() and file.is_file():
         return FileResponse(str(file))
+    # Fallback to index.html for SPA routing
     index = FRONTEND_DIR / "index.html"
     if index.exists():
         return FileResponse(str(index))
