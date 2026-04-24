@@ -20,6 +20,19 @@ data/external/
 *.csv
 *.parquet
 
+# ── Artifacts & Models (regeneratable) ───────────
+artifacts/models/
+artifacts/chroma_db/
+artifacts/forecasts/
+artifacts/vision/
+artifacts/reports/
+artifacts/shap_global_importance.png
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+
 # ── Logs ──────────────────────────────────────────
 logs/
 *.log
@@ -52,16 +65,21 @@ coverage.xml
 # ── Ruff cache ────────────────────────────────────
 .ruff_cache/
 
-# ── Streamlit ─────────────────────────────────────
+# ── Streamlit (if used) ───────────────────────────
 .streamlit/
+
+# Marimo sessions
+
 __marimo__/
 
 # ── Keep folder structure on GitHub ──────────────
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
+!artifacts/models/.gitkeep
+!artifacts/forecasts/.gitkeep
+!artifacts/vision/.gitkeep
+!artifacts/vision/images/.gitkeep
+!artifacts/chroma_db/.gitkeep
+!artifacts/reports/.gitkeep
 !logs/.gitkeep
-
-# ── DEMO BRANCH ───────────────────────────────────
-# Artifacts are intentionally committed here.
-# Do NOT copy this .gitignore back to main.
