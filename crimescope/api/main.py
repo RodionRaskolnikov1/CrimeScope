@@ -41,13 +41,11 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for deployment monitoring."""
     return {"status": "ok", "service": "CrimeScope API", "version": "1.0.0"}
 
 
 @app.get("/")
 async def serve_index():
-    """Serve the SPA index.html."""
     index = FRONTEND_DIR / "index.html"
     if not index.exists():
         return {"error": "index.html not found in frontend/ directory"}
@@ -56,7 +54,6 @@ async def serve_index():
 
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
-    """Catch-all route for SPA client-side navigation."""
     if full_path.startswith("api/"):
         return {"error": "not found"}
     file = FRONTEND_DIR / full_path

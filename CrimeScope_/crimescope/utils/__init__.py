@@ -1,1 +1,0 @@
-from crimescope.utils.logger import logger

@@ -16,19 +16,15 @@ from crimescope.utils.logger import logger
 def main():
     logger.info("🔍 CrimeScope Pipeline Starting...")
 
-    # ── Week 1 — Data ──────────────────────────────
     data = run_ingestion()
     processed_df = run_preprocessing(data["crime"], data["weather"])
 
-    # ── Week 2 — ML ────────────────────────────────
     validated_df = validate(processed_df)
     model, le, metrics = train(validated_df)
     explain_global(validated_df)
 
-    # ── Week 3 — Forecasting ───────────────────────
     forecast_results = run_forecasting(validated_df, horizon=30)
 
-    # ── Week 4 — Computer Vision ───────────────────
     top_zones = (
         validated_df
         .group_by("zone_id")
@@ -39,11 +35,9 @@ def main():
     )
     vision_df = run_vision_pipeline(top_zones)
 
-    # ── Week 5 — LLM + RAG ────────────────────────
     run_embeddings(validated_df, forecast_results, vision_df)
     reports = run_report_generation(validated_df, forecast_results, vision_df)
 
-    # Test the RAG chat with 3 sample queries
     logger.info("Testing RAG chat...")
     test_queries = [
         "Which zone has the highest crime rate?",

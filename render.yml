@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: crimescope
+    runtime: docker
+    branch: demo
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: GOOGLE_GEMINI_API_KEY
+        sync: false
+    healthCheckPath: /health

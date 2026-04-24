@@ -10,7 +10,6 @@ class ChatRequest(BaseModel):
 
 @router.post("/ask")
 async def ask_question(req: ChatRequest):
-    """RAG-powered Q&A over crime data."""
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty.")
     try:

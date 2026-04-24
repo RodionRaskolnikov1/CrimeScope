@@ -37,8 +37,6 @@ def download_chicago_crime(force: bool = False) -> Path:
     logger.success(f"Download complete → {output_path}")
     return output_path
 
-
-
 def load_chicago_crime(path: Path | None = None) -> pl.DataFrame:
     
     path = path or settings.raw_data_dir / "chicago_crime_raw.csv"
@@ -54,8 +52,6 @@ def load_chicago_crime(path: Path | None = None) -> pl.DataFrame:
     
     logger.success(f"Loaded {df.shape[0]:,} rows × {df.shape[1]} columns")
     return df
-
-
 
 
 def fetch_weather_data(
@@ -106,9 +102,6 @@ def fetch_weather_data(
     df.write_parquet(out)
     logger.success(f"Weather data saved → {out} ({df.shape[0]} rows)")
     return df
-
-
-
 
 def run_ingestion() -> dict:
     

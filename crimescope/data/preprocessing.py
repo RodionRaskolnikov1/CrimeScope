@@ -30,8 +30,6 @@ def clean_crime_data(df: pl.DataFrame) -> pl.DataFrame:
     logger.success(f"After cleaning: {df.shape[0]:,} rows remaining")
     return df
 
-
-
 def engineer_features(df: pl.DataFrame) -> pl.DataFrame:
     
     logger.info("Engineering features...")
@@ -71,8 +69,6 @@ def engineer_features(df: pl.DataFrame) -> pl.DataFrame:
     logger.success(f"Features engineered. Columns now: {df.columns}")
     return df
 
-
-
 def assign_grid_zones(df: pl.DataFrame, grid_size: int = None) -> pl.DataFrame:
 
     grid_size = grid_size or settings.grid_size
@@ -98,8 +94,6 @@ def assign_grid_zones(df: pl.DataFrame, grid_size: int = None) -> pl.DataFrame:
 
     return df
 
-
-
 def merge_weather(crime_df: pl.DataFrame, weather_df: pl.DataFrame) -> pl.DataFrame:
     
     logger.info("Merging weather data...")
@@ -115,15 +109,12 @@ def merge_weather(crime_df: pl.DataFrame, weather_df: pl.DataFrame) -> pl.DataFr
     logger.success(f"Merged. Shape: {merged.shape}")
     return merged
 
-
-
 def save_processed(df: pl.DataFrame, filename: str = "crime_processed.parquet") -> None:
     
     out = settings.processed_data_dir / filename
     df.write_parquet(out)
     logger.success(f"Processed data saved → {out}")
     logger.info(f"Final dataset: {df.shape[0]:,} rows × {df.shape[1]} columns")
-    
 
 def run_preprocessing(crime_df: pl.DataFrame, weather_df: pl.DataFrame) -> pl.DataFrame:
     
@@ -137,7 +128,6 @@ def run_preprocessing(crime_df: pl.DataFrame, weather_df: pl.DataFrame) -> pl.Da
     save_processed(df)
 
     return df
-
 
 if __name__ == "__main__":
     from crimescope.data.ingestion import load_chicago_crime
