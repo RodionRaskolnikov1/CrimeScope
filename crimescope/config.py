@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     crime_classifier_model: str = "xgboost"
     forecast_horizon_days: int = 30
     grid_size: int = 50
+
+    # Hyperparameter tuning (XGBoost via Optuna)
+    tune_hyperparams: bool = True
+    tune_trials: int = 25
+    tune_sample_size: int = 80_000  # subsample rows used during the search
     
     class Config:
         env_file = ".env"

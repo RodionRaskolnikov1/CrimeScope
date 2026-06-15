@@ -48,11 +48,19 @@ def prepare_time_series(df: pl.DataFrame) -> pl.DataFrame:
     # Filter to top zones only
     df_filtered = df.filter(pl.col("zone_id").is_in(top_zones))
 
-    # Aggregate: count crimes per zone per day
+    # Aggregate: count crimes per zone per day + mean daily temperature.
+    # Weather is citywide, so temp_max is the same across zones for a date;
+    # carrying it per-row lets Prophet use it as a regressor. temp_max may be
+    # absent (e.g. unit tests / pre-weather data) — degrade gracefully.
+    has_temp = "temp_max" in df_filtered.columns
+    aggs = [pl.len().alias("y")]
+    if has_temp:
+        aggs.append(pl.col("temp_max").mean().alias("temp_max"))
+
     daily = (
         df_filtered
         .group_by(["zone_id", "crime_date"])
-        .agg(pl.len().alias("y"))
+        .agg(aggs)
         .sort(["zone_id", "crime_date"])
         .rename({"crime_date": "ds", "zone_id": "unique_id"})
         .with_columns([
@@ -61,8 +69,48 @@ def prepare_time_series(df: pl.DataFrame) -> pl.DataFrame:
         ])
     )
 
+    # Fill any missing temps with the global median so the regressor is dense.
+    if has_temp:
+        daily = daily.with_columns(
+            pl.col("temp_max").fill_null(pl.col("temp_max").median())
+        )
+
     logger.success(f"Time series prepared: {daily.shape[0]} rows across {TOP_N_ZONES} zones")
     return daily
+
+
+def temp_climatology(daily_df: pl.DataFrame) -> dict:
+    """
+    Mean temperature per calendar month, used to fill the temp_max
+    regressor for future (unobserved) forecast dates. Returns {month: temp}.
+    """
+    monthly = (
+        daily_df
+        .with_columns(pl.col("ds").str.to_date().dt.month().alias("month"))
+        .group_by("month")
+        .agg(pl.col("temp_max").mean().alias("temp_max"))
+    )
+    return {int(m): float(t) for m, t in zip(monthly["month"], monthly["temp_max"])}
+
+
+def attach_future_temp(
+    future: pd.DataFrame,
+    history: pd.DataFrame,
+    monthly_temp: dict,
+) -> pd.DataFrame:
+    """
+    Populate the temp_max regressor on the future dataframe: use observed
+    temps where dates overlap history, and the monthly climatological mean
+    for future dates we don't have weather for.
+    """
+    future = future.merge(history[["ds", "temp_max"]], on="ds", how="left")
+    month = future["ds"].dt.month
+    fallback = month.map(monthly_temp)
+    future["temp_max"] = future["temp_max"].fillna(fallback)
+    # Final safety net if a month is somehow absent from history.
+    overall = float(history["temp_max"].mean())
+    future["temp_max"] = future["temp_max"].fillna(overall)
+    return future
 
 
 # ── Prophet ───────────────────────────────────────────────────────
@@ -70,6 +118,7 @@ def prepare_time_series(df: pl.DataFrame) -> pl.DataFrame:
 def train_prophet(
     series: pd.DataFrame,
     horizon: int = 30,
+    monthly_temp: dict | None = None,
 ) -> tuple[Prophet, pd.DataFrame]:
     """
     Train Prophet on a single zone's time series.
@@ -80,6 +129,11 @@ def train_prophet(
     - Yearly seasonality (more crimes in summer)
     - Holiday effects
     - Trend changes
+
+    When the series carries a temp_max column, it's added as an extra
+    regressor — crime volume tracks temperature beyond pure seasonality
+    (hot days drive more street activity and conflict). Future temps are
+    filled from a monthly climatology since we don't know them in advance.
     """
 
     model = Prophet(
@@ -91,10 +145,22 @@ def train_prophet(
         interval_width=0.95,               # 95% confidence interval
     )
 
-    model.fit(series[["ds", "y"]])
+    use_weather = "temp_max" in series.columns
+    if use_weather:
+        model.add_regressor("temp_max")
+        train_cols = ["ds", "y", "temp_max"]
+    else:
+        train_cols = ["ds", "y"]
+
+    model.fit(series[train_cols])
 
     # Create future dates dataframe
     future = model.make_future_dataframe(periods=horizon, freq="D")
+    if use_weather:
+        clim = monthly_temp or temp_climatology(
+            pl.from_pandas(series.assign(ds=series["ds"].astype(str)))
+        )
+        future = attach_future_temp(future, series, clim)
     forecast = model.predict(future)
 
     return model, forecast
@@ -111,6 +177,9 @@ def run_prophet_all_zones(
 
     logger.info(f"Training Prophet for {TOP_N_ZONES} zones (horizon={horizon} days)...")
 
+    # Compute the temperature climatology once for all zones.
+    monthly_temp = temp_climatology(daily_df)
+
     zones = daily_df["unique_id"].unique().to_list()
     results = {}
 
@@ -125,7 +194,7 @@ def run_prophet_all_zones(
         zone_df = zone_df.sort_values("ds")
 
         try:
-            model, forecast = train_prophet(zone_df, horizon=horizon)
+            model, forecast = train_prophet(zone_df, horizon=horizon, monthly_temp=monthly_temp)
             results[zone] = {
                 "model": model,
                 "forecast": forecast,
@@ -228,19 +297,22 @@ def citywide_forecast(daily_df: pl.DataFrame, horizon: int = 30) -> Path:
 
     logger.info("Building citywide forecast...")
 
-    # Sum all zones per day
+    # Sum all zones per day (mean temp is shared citywide)
+    monthly_temp = temp_climatology(daily_df)
     citywide = (
         daily_df
         .with_columns(pl.col("ds").str.to_date())
         .group_by("ds")
-        .agg(pl.col("y").sum())
+        .agg(
+            pl.col("y").sum().alias("y"),
+            pl.col("temp_max").mean().alias("temp_max"),
+        )
         .sort("ds")
         .to_pandas()
     )
-    citywide.columns = ["ds", "y"]
     citywide["ds"] = pd.to_datetime(citywide["ds"])
 
-    model, forecast = train_prophet(citywide, horizon=horizon)
+    model, forecast = train_prophet(citywide, horizon=horizon, monthly_temp=monthly_temp)
 
     fig = go.Figure()
 
