@@ -3,7 +3,7 @@ import numpy as np
 import polars as pl
 import joblib
 import matplotlib.pyplot as plt
-from crimescope.models.classifier import load, prepare_features, FEATURE_COLS
+from crimescope.models.classifier import load, prepare_features, enrich_features, FEATURE_COLS
 from crimescope.config import settings
 from crimescope.utils.logger import logger
 
@@ -61,7 +61,8 @@ def explain_single(features: dict) -> dict:
 
     model, le = load()
 
-    X = np.array([[features[col] for col in FEATURE_COLS]])
+    enriched = enrich_features(features)
+    X = np.array([[enriched[col] for col in FEATURE_COLS]])
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X)
 
@@ -72,11 +73,11 @@ def explain_single(features: dict) -> dict:
     sv = shap_values[pred_class][0]
 
     explanation = {
-        "predicted_crime": le.classes_[pred_class],
+        "predicted_severity": le.classes_[pred_class],
         "feature_contributions": [
             {
                 "feature": FEATURE_COLS[i],
-                "value": float(features[FEATURE_COLS[i]]),
+                "value": float(enriched[FEATURE_COLS[i]]),
                 "shap_value": round(float(sv[i]), 4),
                 # Positive = pushed toward this prediction
                 # Negative = pushed away from this prediction

@@ -25,8 +25,10 @@ class CrimeSchema(pa.DataFrameModel):
         "DECEPTIVE PRACTICE", "OTHER OFFENSE", "NARCOTICS",
         "BURGLARY", "MOTOR VEHICLE THEFT", "ROBBERY",
     ])
-    
-    
+
+    severity:       Series[str]  = pa.Field(isin=["violent", "property", "other"])
+
+
     class Config:
         coerce = True       
         drop_invalid_rows = True 

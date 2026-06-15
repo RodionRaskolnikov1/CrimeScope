@@ -18,12 +18,10 @@ class PredictionRequest(BaseModel):
 
 @router.post("/predict")
 async def predict_crime(req: PredictionRequest):
-    """Predict crime type for given conditions."""
+    """Predict crime severity (violent / property / other) for given conditions."""
     try:
         from crimescope.models.classifier import predict
-        features = req.model_dump()
-        features["is_weekend"] = int(features["is_weekend"])
-        result = predict(features)
+        result = predict(req.model_dump())
         return result
     except FileNotFoundError:
         raise HTTPException(status_code=503, detail="Model not trained yet. Run main.py first.")
@@ -33,12 +31,10 @@ async def predict_crime(req: PredictionRequest):
 
 @router.post("/explain")
 async def explain_prediction(req: PredictionRequest):
-    """Return SHAP explanation for a prediction."""
+    """Return SHAP explanation for a severity prediction."""
     try:
         from crimescope.models.explainability import explain_single
-        features = req.model_dump()
-        features["is_weekend"] = int(features["is_weekend"])
-        result = explain_single(features)
+        result = explain_single(req.model_dump())
         return result
     except FileNotFoundError:
         raise HTTPException(status_code=503, detail="Model not trained yet.")
